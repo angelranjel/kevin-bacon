@@ -1,4 +1,5 @@
 import random
+from collections import deque
 random.seed(17)
 
 
@@ -87,8 +88,22 @@ class BaconNumberCalculator:
         -------
         None
         """
-        # Method implementation...
-        pass
+        with open(fileName, 'r', encoding='iso-8859-1') as file:
+            for line in file:
+                parts = line.strip().split('/')
+                movie = parts[0]
+                actors = parts[1:]
+                for i in range(len(actors)):
+                    actor1 = actors[i].strip()
+                    if actor1 not in self.adjList:
+                        self.adjList[actor1] = {}
+                    for j in range(i + 1, len(actors)):
+                        actor2 = actors[j].strip()
+                        if actor2 not in self.adjList[actor1]:
+                            self.adjList[actor1][actor2] = movie
+                            if actor2 not in self.adjList:
+                                self.adjList[actor2] = {}
+                            self.adjList[actor2][actor1] = movie
 
     def calcBaconNumber(self, startActor, endActor):
         """
@@ -144,7 +159,24 @@ class BaconNumberCalculator:
 
         """
 
-        # Method implementation...
+        if startActor not in self.adjList or endActor not in self.adjList:
+            return [-1, []]
+        if startActor == endActor:
+            return [0, [startActor]]
+
+        queue = deque([(startActor, [startActor])])
+        visited = set([startActor])
+
+        while queue:
+            current_actor, path = queue.popleft()
+            for neighbor, movie in self.adjList[current_actor].items():
+                if neighbor not in visited:
+                    if neighbor == endActor:
+                        return [(len(path) // 2) + 1, path + [movie, neighbor]]
+                    visited.add(neighbor)
+                    queue.append((neighbor, path + [movie, neighbor]))
+
+        return [-1, []]
 
     def calcAvgNumber(self, startActor, threshold):
         """
@@ -181,4 +213,20 @@ class BaconNumberCalculator:
         float
             The converged average Bacon number for the startActor.
         """
-        # Method implementation...
+        actors = list(self.adjList.keys())
+        previousAvg = 0
+        totalBNum = 0
+        count = 0
+        curDiff = float('inf')
+
+        while curDiff > threshold:
+            count += 1
+            random_actor = random.choice(actors)
+            bNum, _ = self.calcBaconNumber(startActor, random_actor)
+            if bNum != -1:
+                totalBNum += bNum
+                currentAvg = totalBNum / count
+                curDiff = abs(currentAvg - previousAvg)
+                previousAvg = currentAvg
+
+        return previousAvg
